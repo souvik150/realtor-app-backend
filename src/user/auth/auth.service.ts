@@ -14,16 +14,13 @@ interface SignupParams {
 interface SigninParams {
   email: string;
   password: string;
-  name: string;
-  phone: string;
 }
-
 
 @Injectable()
 export class AuthService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async signup({ email, password, name, phone }: SignupParams) {
+  async signup({ email, password, name, phone }: SignupParams, userType: UserType) {
     const userExists = await this.prismaService.user.findUnique({
       where: {
         email,
@@ -42,22 +39,11 @@ export class AuthService {
         name,
         phone,
         password: hashedPassword,
-        user_type: UserType.BUYER,
+        user_type: userType,
       },
     });
 
-    const token = jwt.sign(
-      {
-        name,
-        id: user.id,
-      },
-      process.env.JSON_TOKEN_KEY,
-      {
-        expiresIn: 9000000,
-      },
-    );
-
-    return token;
+    return this.generateJWT(name, user.id);
   }
 
   async signin({ email, password }: SigninParams) {
@@ -79,9 +65,7 @@ export class AuthService {
       throw new HttpException('Invalid Credentials', 400);
     }
 
-    const token = this.generateJWT(user.name, user.id);
-
-    return token;
+    return this.generateJWT(user.name, user.id);
   }
 
   generateJWT(name: string, id: number){
@@ -95,5 +79,10 @@ export class AuthService {
         expiresIn: 9000000,
       },
     );
+  }
+
+  generateProuctKey(email: string, userType: UserType) {
+    const string = `${email}-${userType}-${process.env.PRODUCT_KEY_SECRET}`;
+    return bcrypt.hash(string, 10);
   }
 }
