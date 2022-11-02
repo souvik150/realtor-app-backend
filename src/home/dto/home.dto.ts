@@ -88,8 +88,6 @@ export class CreateHomeDto {
   @IsNotEmpty()
   city: string;
 
-  @IsNumber()
-  @IsPositive()
   image: string;
 
   @IsNumber()

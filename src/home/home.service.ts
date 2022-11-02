@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PropertyType } from 'prisma/prisma-client';
 import { PrismaService } from '../prisma/prisma.service';
-import { HomeResponseDto } from './dto/home.dto';
+import { CreateHomeDto, HomeResponseDto } from './dto/home.dto';
 
 interface GetHomesParam {
   city?: string;
@@ -105,16 +105,19 @@ export class HomeService {
     return new HomeResponseDto(home);
   }
 
-  async createHome({
-    address,
-    numberOfBedrooms,
-    numberOfBathrooms,
-    city,
-    price,
-    landSize,
-    propertyType,
-    images,
-  }: CreateHomeParams) {
+  async createHome(
+    {
+      address,
+      numberOfBedrooms,
+      numberOfBathrooms,
+      city,
+      price,
+      landSize,
+      propertyType,
+      images,
+    }: CreateHomeParams,
+    userId: number,
+  ) {
     const home = await this.prismaService.home.create({
       data: {
         address,
@@ -124,7 +127,7 @@ export class HomeService {
         price,
         land_size: landSize,
         propertyType,
-        realtor_id: 4,
+        realtor_id: userId,
       },
     });
 
@@ -170,5 +173,29 @@ export class HomeService {
         id,
       },
     });
+  }
+
+  async getReltorByHomeId(id: number) {
+    const home = await this.prismaService.home.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        realtor: {
+          select: {
+            name: true,
+            id: true,
+            email: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    if (!home) {
+      throw new NotFoundException();
+    }
+
+    return home.realtor;
   }
 }
